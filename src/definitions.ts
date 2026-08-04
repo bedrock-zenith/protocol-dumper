@@ -1,3 +1,5 @@
+import { isStringOneByteRepresentation } from "node:v8";
+
 export const INTEGER_MAP = {
    // Signed Integers
    int8: "i8",
@@ -30,6 +32,7 @@ export type BuildInNames = "array" | "optional" | "integer" | "float";
 
 export interface BaseDefinition {
    name: string;
+   description?: string;
 }
 
 export interface BaseTypeDefinition extends BaseDefinition {
@@ -40,11 +43,12 @@ export type TypeDefinition =
    | StringTypeDefinition
    | IntegerTypeDefinition
    | BaseTypeDefinition
-   | OptionalTypeDefinition;
+   | OptionalTypeDefinition
+   | BooleanTypeDefinition;
 
 export interface StringTypeDefinition extends BaseTypeDefinition {
    length_type: IntegerTypeDefinition;
-   max_length: number;
+   max_length?: number;
 }
 
 export interface IntegerTypeDefinition extends BaseTypeDefinition {
@@ -53,17 +57,23 @@ export interface IntegerTypeDefinition extends BaseTypeDefinition {
    encoding: IntegerEncoding;
 }
 
+export interface BooleanTypeDefinition extends BaseTypeDefinition {
+   name: "boolean";
+   encoding: "boolean";
+}
+
 export interface FloatTypeDefinition extends BaseTypeDefinition {
    name: "float";
    interpretation: Float;
    encoding: CommonEncoding;
 }
 
-export interface ArrayDefinition {
+export interface ArrayTypeDefinition extends BaseTypeDefinition {
+   name: "array";
    length_type: IntegerTypeDefinition;
    child_type: TypeDefinition;
-   min_length: number;
-   max_length: number;
+   min_length?: number;
+   max_length?: number;
 }
 
 export interface OptionalTypeDefinition extends BaseTypeDefinition {
@@ -82,12 +92,18 @@ export interface StructDefinition extends BaseDefinition {
 
 export interface PacketDefinition extends BaseDefinition {
    id: number;
-   payload: StructDefinition;
+   payload: TypeDefinition;
 }
 
 export interface EnumDefinition extends BaseDefinition {
    enum: Record<string, number>;
    backing_integer: Integer;
+}
+
+export interface EnumTypeDefinition extends BaseTypeDefinition {
+   is_bind_type: true;
+   encoding: "literal-key" | "value";
+   integer_encoding: IntegerTypeDefinition;
 }
 
 export interface FileDefinition extends BaseDefinition {
