@@ -80,12 +80,17 @@ export interface StructDefinition extends BaseDefinition {
    fields: FieldDefinition[];
 }
 
+export interface PacketDefinition extends BaseDefinition {
+   id: number;
+   payload: StructDefinition;
+}
+
 export interface EnumDefinition extends BaseDefinition {
    enum: Record<string, number>;
    backing_integer: Integer;
 }
 
-export interface FileDefinition {
+export interface FileDefinition extends BaseDefinition {
    protocol: number;
    kind: "enum" | "struct" | "metadata";
    data: StructDefinition | EnumDefinition;

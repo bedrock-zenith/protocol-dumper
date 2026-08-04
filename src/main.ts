@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { DIRECTORY } from "./bds";
-import { readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import {
    FLOAT_MAP,
    INTEGER_MAP,
@@ -16,6 +16,7 @@ import {
    type OptionalTypeDefinition,
    type StructDefinition,
 } from "./definitions";
+import { Registry } from "./transformer";
 
 console.log(DIRECTORY);
 
@@ -23,30 +24,18 @@ const protocol_dump = resolve(
    join(DIRECTORY, "docs", "json_schemas", "protocol"),
 );
 
-const set = new Set();
+const registry = new Registry();
+
 for await (const file of await readdir(protocol_dump, {})) {
    const data = JSON.parse(
       await readFile(join(protocol_dump, file)).then((_) => _.toString()),
    );
-   if (!data.type && !data["$metaProperties"]) console.log(data);
-   if (!set.has(data.type)) console.log(data.type, file);
-   set.add(data.type);
 
-   if (data.type)
-      switch (data.type) {
-         case "object": {
-            console.log(
-               Object.getOwnPropertyNames(data.properties ?? {})
-                  .sort(
-                     (a, b) =>
-                        data.properties[a]["x-ordinal-index"] -
-                        data.properties[b]["x-ordinal-index"],
-                  )
-                  .map(toSpacePascalCase),
-            );
-         }
-      }
+   registry.appendFile(file, data);
 }
+
+await mkdir("dump-test").catch((_) => null);
+await registry.dump("dump-test");
 
 async function TransformEnum(
    data: any,
@@ -189,7 +178,21 @@ async function TransformType(
    data: any,
    context: Context,
 ): Promise<BaseTypeDefinition> {
+   if (data.type == "object") return await TransformStruct(data, context);
    return {} as any;
+}
+
+type TransformTypes = "struct" | "ref" | "string" | "integer" | "float";
+function GetType(data: any): TransformTypes {
+   if (typeof data.type == "string") {
+      if (data.type === "object") return "struct";
+
+      throw new ReferenceError(
+         "Unknown type: " + JSON.stringify(data, null, 3),
+      );
+   }
+
+   throw new ReferenceError("Unknown type: " + JSON.stringify(data, null, 3));
 }
 
 /**
