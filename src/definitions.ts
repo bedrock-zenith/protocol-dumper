@@ -1,5 +1,3 @@
-import { isStringOneByteRepresentation } from "node:v8";
-
 export const INTEGER_MAP = {
    // Signed Integers
    int8: "i8",
@@ -83,7 +81,6 @@ export interface OptionalTypeDefinition extends BaseTypeDefinition {
 
 export interface FieldDefinition extends BaseDefinition {
    type: TypeDefinition;
-   details: null;
 }
 
 export interface StructDefinition extends BaseDefinition {

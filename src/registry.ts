@@ -308,7 +308,6 @@ export class Registry {
          const field_data = data_properties[key];
          let field: FieldDefinition = {
             name: name,
-            details: null,
             type: await this.type(
                { file: null, name: `${context.name} ${name}` },
                field_data,
@@ -398,8 +397,8 @@ export class Registry {
       }
       const data = {
          name: definition.name,
-         type: type,
          hash: hash,
+         type: type,
          ...(definition as any),
       };
 
@@ -419,6 +418,21 @@ export class Registry {
             value,
          );
       }
+
+      this.dumpFile("__protocol__.json", {
+         name: "protocol",
+         type: "protocol",
+         enums: this.definitions
+            .values()
+            .filter((_) => _.type === "enum")
+            .toArray()
+            .sort((a, b) => a.name.localeCompare(b.name)),
+         structs: this.definitions
+            .values()
+            .filter((_) => _.type === "struct")
+            .toArray()
+            .sort((a, b) => a.name.localeCompare(b.name)),
+      });
    }
    private async dumpFile(name: string, data: any): Promise<void> {
       const path = join(this.output, name);
