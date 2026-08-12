@@ -1,15 +1,13 @@
-import { join, resolve } from "node:path";
-import { DIRECTORY } from "./bds";
-import { mkdir, rm } from "node:fs/promises";
-import { Transformer } from "./loader";
-import "./utils";
+import { join, resolve } from 'node:path';
+import { DIRECTORY } from './bds';
+import { mkdir, rm } from 'node:fs/promises';
+import { Transformer } from './loader';
+import './utils';
 
 console.log(DIRECTORY);
-const OUTPUT = "dump";
+const OUTPUT = 'dump';
 
-const protocol_dump = resolve(
-   join(DIRECTORY, "docs", "json_schemas", "protocol"),
-);
+const protocol_dump = resolve(join(DIRECTORY, 'docs', 'json_schemas', 'protocol'));
 
 await rm(OUTPUT, { recursive: true }).catch((_) => null);
 await mkdir(OUTPUT).catch((_) => null);
