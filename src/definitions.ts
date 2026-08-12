@@ -16,17 +16,18 @@ export const INTEGER_MAP = {
 export const FLOAT_MAP = {
    // "half": "f16"
    float: "f32",
-   //"double": "f64",
+   double: "f64",
 } as const;
 
 export type AheadOfTransformIntegerType = keyof typeof INTEGER_MAP;
 export type Integer = (typeof INTEGER_MAP)[AheadOfTransformIntegerType];
-export type CommonEncoding = "little-endian" | "big-endian" | "native";
+export type CommonEncoding = "little_endian" | "big_endian" | "native";
 export type IntegerEncoding = "leb128" | "zleb128" | CommonEncoding; // native <-> none
 
 export type AheadOfTransformFloatType = keyof typeof FLOAT_MAP;
 export type Float = (typeof FLOAT_MAP)[AheadOfTransformFloatType];
-export type BuildInNames = "array" | "optional" | "integer" | "float";
+export type BuildInNames =
+   "array" | "optional" | "integer" | "float" | "void" | "string";
 
 export interface BaseDefinition {
    name: string;
@@ -35,6 +36,7 @@ export interface BaseDefinition {
 
 export interface BaseTypeDefinition extends BaseDefinition {
    is_bind_type: boolean;
+   constrain?: string;
 }
 
 export type TypeDefinition =
@@ -44,30 +46,40 @@ export type TypeDefinition =
    | OptionalTypeDefinition
    | BooleanTypeDefinition;
 
+export interface VoidTypeDefinition extends BaseTypeDefinition {
+   name: "void";
+   is_bind_type: false;
+}
 export interface StringTypeDefinition extends BaseTypeDefinition {
+   name: "string";
+   is_bind_type: false;
    length_type: IntegerTypeDefinition;
    max_length?: number;
 }
 
 export interface IntegerTypeDefinition extends BaseTypeDefinition {
    name: "integer";
+   is_bind_type: false;
    interpretation: Integer;
    encoding: IntegerEncoding;
 }
 
 export interface BooleanTypeDefinition extends BaseTypeDefinition {
    name: "boolean";
+   is_bind_type: false;
    encoding: "boolean";
 }
 
 export interface FloatTypeDefinition extends BaseTypeDefinition {
    name: "float";
+   is_bind_type: false;
    interpretation: Float;
    encoding: CommonEncoding;
 }
 
 export interface ArrayTypeDefinition extends BaseTypeDefinition {
    name: "array";
+   is_bind_type: false;
    length_type: IntegerTypeDefinition;
    child_type: TypeDefinition;
    min_length?: number;
@@ -76,6 +88,7 @@ export interface ArrayTypeDefinition extends BaseTypeDefinition {
 
 export interface OptionalTypeDefinition extends BaseTypeDefinition {
    name: "optional";
+   is_bind_type: false;
    child_type: TypeDefinition;
 }
 
@@ -102,55 +115,3 @@ export interface EnumTypeDefinition extends BaseTypeDefinition {
    encoding: "literal-key" | "value";
    integer_encoding: IntegerTypeDefinition;
 }
-
-export interface FileDefinition extends BaseDefinition {
-   protocol: number;
-   kind: "enum" | "struct" | "metadata";
-   data: StructDefinition | EnumDefinition;
-}
-
-/*
-export interface EnumDefinition extends BaseTypeDefinition {
-   kind: "enum";
-   enum: Record<string, number>;
-   backing_integer: Integer;
-}
-
-export interface StructDefinition extends BaseTypeDefinition {
-   kind: "struct";
-   fields: FieldDefinition;
-}
-
-export interface OptionalTypeDefinition extends BaseTypeDefinition {
-   kind: "optional";
-   element_type: TypeDefinition;
-}
-
-export interface FieldDefinition extends BaseDefinition {
-   type: TypeDefinition;
-   encoding: Encoding | null;
-} */
-
-/* {
-    "title": "Achievement",
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "/Achievement.json",
-    "x-format-version": "MISSING VERSION",
-    "x-minecraft-version": "1.26.50-beta.22",
-    "x-protocol-version": 2177,
-    "type": "object",
-    "properties": {
-        "Achievement ID": {
-            "$ref": "./MinecraftEventing__AchievementIds.json",
-            "x-underlying-type": "uint8",
-            "x-serialization-options": [
-                "Compression",
-                "Enum-as-Value"
-            ],
-            "x-ordinal-index": 0
-        }
-    },
-    "required": [
-        "Achievement ID"
-    ]
-} */

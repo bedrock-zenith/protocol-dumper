@@ -1,12 +1,10 @@
 {
-  "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": [
-    "node_modules"
-  ],
-  "singleQuote": true,
-  "tabWidth": 4,
-  "endOfLine": "lf",
-  "printWidth": 80,
-  "trailingComma": "none",
-  "semi": true
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
+    "ignorePatterns": ["node_modules"],
+    "singleQuote": true,
+    "tabWidth": 4,
+    "endOfLine": "lf",
+    "printWidth": 110,
+    "trailingComma": "none",
+    "semi": true
 }
