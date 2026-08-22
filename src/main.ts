@@ -1,22 +1,29 @@
-import { join, resolve } from 'node:path';
-import { DIRECTORY } from './bds';
-import { mkdir, rm } from 'node:fs/promises';
-import { Transformer } from './loader';
-import './utils';
+import { join, resolve } from "node:path";
+import { DIRECTORY } from "./bds";
+import { mkdir, rm } from "node:fs/promises";
+import { Transformer } from "./apis/transformer";
+import "./utils";
+import "./apis/context";
 
 console.log(DIRECTORY);
-const OUTPUT = 'dump';
+const OUTPUT = "dump";
 
-const protocol_dump = resolve(join(DIRECTORY, 'docs', 'json_schemas', 'protocol'));
+const protocol_dump = resolve(
+   join(DIRECTORY, "docs", "json_schemas", "protocol"),
+);
 
 await rm(OUTPUT, { recursive: true }).catch((_) => null);
 await mkdir(OUTPUT).catch((_) => null);
 
 const transformer = await Transformer.from(protocol_dump);
 
-await transformer.load();
+transformer.load();
 
-await transformer.dump(OUTPUT);
+console.log(
+   Array.from(transformer.register.byName.keys()).filter((_) =>
+      _.includes("Start"),
+   ),
+);
 
 /*
 const transformer = new Transformer(protocol_dump, OUTPUT);
