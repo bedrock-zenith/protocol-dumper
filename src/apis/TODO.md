@@ -1,0 +1,8 @@
+- [ ] Create reasonable apis for constant fields
+- [ ] Improve union encoding, and union layout resolution with backing enumerable
+- [ ] Strings and Arrays has to hold their metadata length constrains
+- [ ] Structs handle defaults properly
+- [ ] Strings handle patterns
+- [ ] Add hash map and hash set
+- [ ] Hash map not saving some of the encoding information
+- [ ] Add proper hashing for enum datatype, to avoid generating identical enum types for different scope, e.g. "StartGame.GameType" vs "GameType"
