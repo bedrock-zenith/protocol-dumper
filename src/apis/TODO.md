@@ -6,3 +6,6 @@
 - [ ] Add hash map and hash set
 - [ ] Hash map not saving some of the encoding information
 - [ ] Add proper hashing for enum datatype, to avoid generating identical enum types for different scope, e.g. "StartGame.GameType" vs "GameType"
+- [ ] Register BindTypes by hash as well
+- [ ] Literal Encoding for Enums should have data_encoding of string
+- [ ] Constant size array should be called vectors

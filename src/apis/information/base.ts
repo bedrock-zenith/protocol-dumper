@@ -1,4 +1,6 @@
+import { LAYOUT_KEYS } from "../constants";
 import { CommonInformation } from "../base";
+import { hash } from "../../utils";
 
 export abstract class LayoutInformation extends CommonInformation {
    public readonly encodings: EncodingInformation[] = [];
@@ -16,12 +18,27 @@ export abstract class BindTypeInformation extends LayoutInformation {
       return this.type + this.name;
    }
    public override getLayoutKey(): string {
-      return this.type + this.name;
+      return this.type;
    }
    public override getTypeData(data: object): void {
       Reflect.set(data, "name", this.name);
       Reflect.set(data, "bind_type", this.type);
       Reflect.set(data, "is_bind_type", true);
+   }
+   public override getLayoutData(data: object): void {
+      Reflect.set(data, "name", this.name);
+      Reflect.set(data, "bind_type", this.type);
+      Reflect.set(data, "is_bind_type", true);
+   }
+
+   public dump(): object {
+      const obj = Object.create(null);
+      Reflect.set(obj, "name", this.name);
+      Reflect.set(obj, "hash", hash(this.getLayoutKey()));
+      Reflect.set(obj, "bind_type", this.type);
+      Reflect.set(obj, "is_bind_type", true);
+      this.getLayoutData(obj);
+      return obj;
    }
 }
 
@@ -69,7 +86,7 @@ export class EmptyEncodingInformation extends EncodingInformation {
       void data;
    }
    public override getEncodingKey(): string {
-      return "%%EMPTY_ENCODING_INFORMATION%%";
+      return LAYOUT_KEYS.EMPTY_ENCODING_INFORMATION;
    }
    public override consumeInternal(): void {}
 }

@@ -43,8 +43,7 @@ export class Context {
       const information = this.transformer.resolve(context, consumer);
       information.consume(context, consumer);
       if (information instanceof BindTypeInformation) {
-         console.log("Registering: " + information.name);
-         this.transformer.register.byName.set(information.name, information);
+         this.transformer.registerBindType(information);
       }
 
       return [information, context];

@@ -1,6 +1,11 @@
+import { DYNAMIC_VALUE_DESCRIPTION, SCHEMA_KEYS } from "./constants";
 import type { SchemaDefinition, SchemaFile } from "../types";
 import { Consumer } from "./consumer";
-import type { LayoutInformation } from "./information/base";
+import {
+   BindTypeInformation,
+   PrimitiveTypeInformation,
+   type LayoutInformation,
+} from "./information/base";
 import {
    AliasInformation,
    SymbolInformation,
@@ -54,13 +59,19 @@ export class Transformer {
       const meta = this.consume(consumer);
       const context = Context.create(meta.title, file, this);
 
-      let type = this.resolve(context, consumer);
-      if (consumer.hasProperty<SchemaDefinition>("$ref")) {
-         type = new AliasInformation(context.name, type);
+      let info = this.resolve(context, consumer);
+      if (info.isFinalized) {
+         if (info instanceof BindTypeInformation) this.registerBindType(info);
+         info = new AliasInformation(context.name, info);
+      } else if (info instanceof PrimitiveTypeInformation) {
+         info.consume(context, consumer);
+         info = new AliasInformation(context.name, info);
       }
-      this.register.mark(file, type);
 
-      type.consume(context, consumer);
+      info.consume(context, consumer);
+      this.register.mark(file, info);
+
+      if (info instanceof BindTypeInformation) this.registerBindType(info);
 
       if (!consumer.isConsumed())
          context.throw(
@@ -68,15 +79,14 @@ export class Transformer {
                JSON.stringify(consumer.getMissingReport()),
          );
 
-      this.register.byName.set(type.name, type);
-      return type;
+      return info;
    }
 
    public resolve(context: Context, consumer: Consumer): LayoutInformation {
       const name = context.getFullName();
-      if (consumer.hasProperty<SchemaDefinition>("$ref")) {
+      if (consumer.hasProperty<SchemaDefinition>(SCHEMA_KEYS.REF)) {
          const path = consumer
-            .getProperty<SchemaDefinition>("$ref")
+            .getProperty<SchemaDefinition>(SCHEMA_KEYS.REF)
             .extract("string");
 
          const file = Resources.resolved(path);
@@ -88,29 +98,31 @@ export class Transformer {
          return type;
       }
 
-      if (consumer.hasProperty<SchemaDefinition>("oneOf")) {
+      if (consumer.hasProperty<SchemaDefinition>(SCHEMA_KEYS.ONE_OF)) {
          return new UnionLayoutInformation(name);
       }
 
       // // reference is not data component but is valid base component
-      if (consumer.hasProperty<SchemaDefinition>("type")) {
+      if (consumer.hasProperty<SchemaDefinition>(SCHEMA_KEYS.TYPE)) {
          const kind = consumer
-            .getProperty<SchemaDefinition>("type")
+            .getProperty<SchemaDefinition>(SCHEMA_KEYS.TYPE)
             .extract("string");
 
-         if (consumer.hasProperty<SchemaDefinition>("enum"))
-            return new EnumLayoutInformation();
+         if (consumer.hasProperty<SchemaDefinition>(SCHEMA_KEYS.ENUM))
+            return new EnumLayoutInformation(context.name);
 
          if (kind === "object") {
             const additional = consumer.getProperty<SchemaDefinition>(
-               "additionalProperties",
+               SCHEMA_KEYS.ADDITIONAL_PROPERTIES,
             );
             if (additional.hasValue()) {
                if (
                   additional
                      .getProperty<SchemaDefinition>("type")
                      .extractOptional("string") === "object" ||
-                  consumer.hasProperty<SchemaDefinition>("propertyNames")
+                  consumer.hasProperty<SchemaDefinition>(
+                     SCHEMA_KEYS.PROPERTY_NAMES,
+                  )
                ) {
                   return new MapLayoutInformation();
                   //throw new ReferenceError("Unimplemented");
@@ -138,18 +150,20 @@ export class Transformer {
 
       if (
          (consumer.getKeys().length === 1 &&
-            consumer.getKeys().includes("x-ordinal-index")) ||
+            consumer.getKeys().includes(SCHEMA_KEYS.ORDINAL_INDEX)) ||
          (consumer.getKeys().length === 2 &&
-            consumer.getKeys().includes("x-ordinal-index") &&
-            consumer.getKeys().includes("x-runtime-constraint-description"))
+            consumer.getKeys().includes(SCHEMA_KEYS.ORDINAL_INDEX) &&
+            consumer
+               .getKeys()
+               .includes(SCHEMA_KEYS.RUNTIME_CONSTRAINT_DESCRIPTION))
       )
-         return new VoidInformation();
+         return new NBTCompoundInformation();
 
-      if (consumer.hasProperty<SchemaDefinition>("description")) {
+      if (consumer.hasProperty<SchemaDefinition>(SCHEMA_KEYS.DESCRIPTION)) {
          const description = consumer
-            .getProperty<SchemaDefinition>("description")
+            .getProperty<SchemaDefinition>(SCHEMA_KEYS.DESCRIPTION)
             .extract("string");
-         if (description === "Dynamic value")
+         if (description === DYNAMIC_VALUE_DESCRIPTION)
             return new DDUIDynamicInformation();
 
          throw new TypeError(
@@ -162,8 +176,17 @@ export class Transformer {
       return new NBTCompoundInformation();
    }
 
+   public registerBindType(type: BindTypeInformation): void {
+      //todo: register by hash as well
+      console.log("Registering: " + type.name);
+      this.register.byName.set(type.name, type);
+   }
    public consume(consumer: Consumer): FileMetadata {
-      consumer.discardMany<SchemaFile>(["$id", "$schema", "x-format-version"]);
+      consumer.discardMany<SchemaFile>([
+         SCHEMA_KEYS.ID,
+         SCHEMA_KEYS.SCHEMA,
+         SCHEMA_KEYS.FORMAT_VERSION,
+      ]);
 
       const {
          "x-protocol-version": protocol,
@@ -172,7 +195,7 @@ export class Transformer {
       } = consumer.extractMany({
          "x-protocol-version": "number",
          "x-minecraft-version": "string",
-         title: "string",
+         [SCHEMA_KEYS.TITLE]: "string",
       } satisfies Partial<
          Record<keyof SchemaFile, "number" | "string" | "boolean">
       >);

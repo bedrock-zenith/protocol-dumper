@@ -1,3 +1,4 @@
+import { SCHEMA_KEYS } from "../../constants";
 import type { SchemaDefinition, SchemaField } from "../../../types";
 import type { Consumer } from "../../consumer";
 import { Context } from "../../context";
@@ -8,22 +9,24 @@ export class UnionLayoutInformation extends BindTypeInformation {
    public readonly backing!: EnumLayoutInformation;
    public readonly map: Record<string, EncodingInformation> =
       Object.create(null);
-   public override type: string = "map";
+   public override type: string = "union";
 
    public override getEncoding(): EncodingInformation {
       return new UnionEncodingInformation(this);
    }
-   public override getLayoutData(data: object): void {
-      throw new Error("Method not implemented.");
-   }
+   public override getLayoutData(data: object): void {}
    public override consumeInternal(context: Context, consumer: Consumer): void {
-      const unionFields = consumer.getProperty<SchemaDefinition>("oneOf");
+      const unionFields = consumer.getProperty<SchemaDefinition>(
+         SCHEMA_KEYS.ONE_OF,
+      );
 
       const fields: EncodingInformation[] = [];
       for (const field of unionFields.getIterator()) {
          const type = context.childWithEncoding(String(fields.length), field);
 
-         const ordinal = field.getProperty<SchemaField>("x-ordinal-index");
+         const ordinal = field.getProperty<SchemaField>(
+            SCHEMA_KEYS.ORDINAL_INDEX,
+         );
          if (ordinal.hasValue()) {
             const index = ordinal.extract("number");
             if (index !== fields.length)
@@ -37,11 +40,9 @@ export class UnionLayoutInformation extends BindTypeInformation {
 }
 
 export class UnionEncodingInformation extends EncodingInformation {
-   public override getEncodingData(data: object): void {
-      throw new Error("Method not implemented.");
-   }
+   public override getEncodingData(data: object): void {}
    public override getEncodingKey(): string {
-      throw new Error("Method not implemented.");
+      return "";
    }
    protected override consumeInternal(
       context: Context,
