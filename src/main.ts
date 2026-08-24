@@ -29,11 +29,18 @@ transformer.load();
 const base = {
    name: "protocol",
    bind_type: "namespace",
+   is_bind_type: false,
    enums: [] as Array<unknown>,
    structs: [] as Array<unknown>,
    unions: [] as Array<unknown>,
    aliases: [] as Array<unknown>,
    symbols: [] as Array<unknown>,
+};
+const canonical = {
+   name: "protocol",
+   bind_type: "canonical_namespace",
+   is_bind_type: false,
+   types: [] as Array<unknown>,
 };
 for (const any of transformer.register.byName.values()) {
    if (any instanceof BindTypeInformation)
@@ -51,6 +58,7 @@ for (const any of transformer.register.byName.values()) {
             (any.type +
                (any.type.endsWith("s") ? "es" : "s")) as unknown as "structs"
          ].push(value);
+         canonical.types.push(value);
          await writeFile(
             join(
                OUTPUT,
@@ -65,6 +73,10 @@ await writeFile(
    JSON.stringify(base, null, 4),
 );
 
+await writeFile(
+   join(OUTPUT, "__protocol_canonical__.json"),
+   JSON.stringify(canonical, null, 4),
+);
 /*
 const transformer = new Transformer(protocol_dump, OUTPUT);
 

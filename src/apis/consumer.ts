@@ -45,6 +45,24 @@ export class Consumer {
       return this.type !== "null";
    }
 
+   public extractRaw(): unknown | null {
+      this.is_consumed = true;
+      if (this.type === "null") return null;
+      if (this.type === "object") {
+         return Object.fromEntries(
+            Object.entries(this.data).map(([key, value]) => [
+               key,
+               (value as Consumer).extractRaw(),
+            ]),
+         );
+      }
+
+      if (this.type === "array")
+         return (this.data as Array<Consumer>).map((_) => _.extractRaw());
+
+      return this.data;
+   }
+
    public extractOptional<K extends "string" | "boolean" | "number">(
       key: K,
    ): ConsumerMap[K] | null {

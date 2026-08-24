@@ -49,6 +49,9 @@ export abstract class PrimitiveTypeInformation extends LayoutInformation {
    }
    public override getTypeData(data: object): void {
       this.getLayoutData(data);
+      if (Reflect.ownKeys(this.metadata).length > 0) {
+         Reflect.set(data, "metadata", this.metadata);
+      }
    }
    public override getTypeKey(): string {
       return this.getLayoutKey();
@@ -69,6 +72,9 @@ export abstract class EncodingInformation extends CommonInformation {
    }
    public override getTypeData(data: object): void {
       this.layout.getTypeData(data);
+      if (Reflect.ownKeys(this.metadata).length > 0) {
+         Reflect.set(data, "metadata", this.metadata);
+      }
       this.getEncodingData(data);
    }
    public override getLayoutKey(): string {
