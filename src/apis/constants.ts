@@ -1,6 +1,7 @@
 export const LAYOUT_KEYS = {
     EMPTY_ENCODING_INFORMATION: '%%EMPTY_ENCODING_INFORMATION%%',
     ARRAY: '%%ARRAY%%',
+    MAP: '%%MAP%%',
     BOOLEAN: '%%BOOLEAN%%',
     DDUI_DYNAMIC: '%%DDUIDynamic%%',
     NBT_COMPOUND: '%%NBTCompound%%',

@@ -4,6 +4,8 @@ import type { Consumer } from '../../consumer';
 import type { Context } from '../../context';
 import { BindTypeInformation, EncodingInformation } from '../base';
 import { IntegerEncodingInformation, IntegerInformation } from './number';
+import { StringInformation } from './string';
+import { type DataScope, KeyBuilder } from '../../base';
 
 export class EnumLayoutInformation extends BindTypeInformation {
     public override type: string = 'enum';
@@ -33,17 +35,19 @@ export class EnumLayoutInformation extends BindTypeInformation {
             this.set('backing', backing);
         }
     }
-    public override getLayoutData(data: object): void {
-        super.getLayoutData(data);
-        Reflect.set(data, 'enum_kind', this.kind);
-        if (this.backing) Reflect.set(data, 'backing_integer', this.backing.interpretation);
-        Reflect.set(data, 'enum', this.fields);
+    public override getData(data: object, scope: DataScope): void {
+        super.getData(data, scope);
+
+        if (scope === 'layout') {
+            Reflect.set(data, 'enum_kind', this.kind);
+            if (this.backing) Reflect.set(data, 'backing_integer', this.backing.interpretation);
+            Reflect.set(data, 'enum', this.fields);
+        }
     }
-    public override getTypeKey(): string {
-        return super.getTypeKey() + JSON.stringify(this.fields) + this.backing?.getTypeKey() + this.kind;
-    }
-    public override getLayoutKey(): string {
-        return super.getLayoutKey() + JSON.stringify(this.fields) + this.kind;
+    public override getKey(builder: KeyBuilder, scope: DataScope): void {
+        super.getKey(builder, scope);
+        if (scope === 'layout') builder.append(this.fields).append(this.kind);
+        if (scope === 'field' && this.backing) this.backing.getKey(builder, 'field');
     }
     public override getEncoding(): EncodingInformation {
         return new EnumEncodingInformation(this);
@@ -58,13 +62,26 @@ export class EnumEncodingInformation extends EncodingInformation {
         super(layout);
         this.reinterpret = layout.backing ? new IntegerEncodingInformation(layout.backing, 'enum') : null;
     }
-    public override getEncodingData(data: object): void {
-        Reflect.set(data, 'exhaustive', this.exhaustive);
-        Reflect.set(data, 'enum_encoding', this.kind);
-        if (this.reinterpret) Reflect.set(data, 'data_encoding', this.reinterpret.createLayout());
+    public override getData(data: object, scope: DataScope): void {
+        super.getData(data, scope);
+
+        if (scope === 'layout' || scope === 'field') {
+            Reflect.set(data, 'exhaustive', this.exhaustive);
+            Reflect.set(data, 'enum_encoding', this.kind);
+
+            if (this.kind === 'literal')
+                Reflect.set(data, 'data_encoding', StringInformation.default.createData('field'));
+
+            if (this.kind === 'numeric' && this.reinterpret)
+                Reflect.set(data, 'data_encoding', this.reinterpret.createData('field'));
+        }
     }
-    public override getEncodingKey(): string {
-        return this.kind + this.exhaustive + '#' + (this.reinterpret?.getEncodingKey() ?? '');
+    public override getKey(builder: KeyBuilder, scope: DataScope): void {
+        super.getKey(builder, scope);
+        if (scope === 'layout' || scope === 'field') {
+            builder.append(this.kind).append(this.exhaustive);
+            if (this.reinterpret) this.reinterpret.getKey(builder, 'field');
+        }
     }
     public override consumeInternal(context: Context, consumer: Consumer): void {
         const options = consumer.getProperty<SchemaDefinition>(SCHEMA_KEYS.SERIALIZATION_OPTIONS);

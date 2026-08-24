@@ -13,6 +13,7 @@ import {
 } from "./apis/information/layout/symbol";
 import { UnionLayoutInformation } from "./apis/information/layout/union";
 
+const stringify = (value: unknown): string => JSON.stringify(value, null, 2);
 console.log(DIRECTORY);
 const OUTPUT = "dump";
 
@@ -64,18 +65,14 @@ for (const any of transformer.register.byName.values()) {
                OUTPUT,
                any.name.replaceAll(" ", "") + "." + any.type + ".json",
             ),
-            JSON.stringify(any.dump(), null, 4),
+            stringify(value),
          );
       }
 }
-await writeFile(
-   join(OUTPUT, "__protocol__.json"),
-   JSON.stringify(base, null, 4),
-);
-
+await writeFile(join(OUTPUT, "__protocol__.json"), stringify(base));
 await writeFile(
    join(OUTPUT, "__protocol_canonical__.json"),
-   JSON.stringify(canonical, null, 4),
+   stringify(canonical),
 );
 /*
 const transformer = new Transformer(protocol_dump, OUTPUT);
