@@ -4,7 +4,7 @@
         "dump": "rolldown -c && node --enable-source-maps dist/main.js"
     },
     "devDependencies": {
-        "@bedrock-apis/bds-utils": "1.2.0-beta",
+        "@bedrock-apis/bds-utils": "1.3.2-beta",
         "@types/node": "^26.1.2",
         "oxfmt": "^0.61.0",
         "oxlint": "^1.76.0",

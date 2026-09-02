@@ -63,7 +63,7 @@ for (const any of transformer.register.byName.values()) {
          await writeFile(
             join(
                OUTPUT,
-               any.name.replaceAll(" ", "") + "." + any.type + ".json",
+               `${any.type}.${any.name.replaceAll(" ", "-").toLowerCase()}.json`,
             ),
             stringify(value),
          );

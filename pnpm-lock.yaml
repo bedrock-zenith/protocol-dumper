@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@bedrock-apis/bds-utils':
-        specifier: 1.2.0-beta
-        version: 1.2.0-beta
+        specifier: 1.3.2-beta
+        version: 1.3.2-beta
       '@types/node':
         specifier: ^26.1.2
         version: 26.1.2
@@ -29,8 +29,8 @@ importers:
 
 packages:
 
-  '@bedrock-apis/bds-utils@1.2.0-beta':
-    resolution: {integrity: sha512-CU9tCcLny9BYhzk/PRgU+Paoux9L4XsF28a0wu7Dpj05A/vbetfjq7ACwiBqL6OJUWY6wjX+jPBj2ck5vo8QVQ==}
+  '@bedrock-apis/bds-utils@1.3.2-beta':
+    resolution: {integrity: sha512-0un+YbSEJoTSW2QdTn+UJN0I1fomi/77gPSJhtzv2S/iwdSD9artYL3AKWlbwggkd8gOoClVZC9MQjCXqOzNew==}
 
   '@emnapi/core@2.0.0-alpha.3':
     resolution: {integrity: sha512-AZypUeJ/yByuxyS7BlSNRDOMLMlROYtjYdIAuBmJssVz1UJDSeYxLrdizhXCFYhedC5bqd/ASy8EuNXbVVXp9g==}
@@ -569,7 +569,7 @@ packages:
 
 snapshots:
 
-  '@bedrock-apis/bds-utils@1.2.0-beta':
+  '@bedrock-apis/bds-utils@1.3.2-beta':
     dependencies:
       unzip-web-stream: 0.0.0-alpha.1
 
