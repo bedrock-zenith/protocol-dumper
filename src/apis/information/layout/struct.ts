@@ -41,7 +41,7 @@ export class StructLayoutInformation extends BindTypeInformation {
         if (scope === 'layout') {
             for (const field of this.fields) {
                 builder.append(field.name);
-                field.type.getKey(builder, 'layout');
+                field.type.getKey(builder, 'field');
                 builder.append(field.metadata ?? null);
             }
         }

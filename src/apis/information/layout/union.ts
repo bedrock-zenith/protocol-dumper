@@ -55,7 +55,7 @@ export class UnionLayoutInformation extends BindTypeInformation {
         if (scope === "layout") {
             for (const field of this.fields) {
                 builder.append(field.enum_literal);
-                field.type.getKey(builder, "layout");
+                field.type.getKey(builder, "field");
             }
 
             this.backing.getKey(builder, "layout");

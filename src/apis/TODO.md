@@ -1,11 +1,11 @@
-- [ ] Create reasonable apis for constant fields
-- [ ] Improve union encoding, and union layout resolution with backing enumerable
-- [ ] Strings and Arrays has to hold their metadata length constrains
-- [ ] Structs handle defaults properly
-- [ ] Strings handle patterns
-- [ ] Add hash map and hash set
-- [ ] Hash map not saving some of the encoding information
-- [ ] Add proper hashing for enum datatype, to avoid generating identical enum types for different scope, e.g. "StartGame.GameType" vs "GameType"
-- [ ] Register BindTypes by hash as well
-- [ ] Literal Encoding for Enums should have data_encoding of string
-- [ ] Constant size array should be called vectors
+- [x] Create reasonable apis for constant fields
+- [x] Improve union encoding, and union layout resolution with backing enumerable
+- [x] Strings and Arrays has to hold their metadata length constrains
+- [x] Structs handle defaults properly
+- [x] Strings handle patterns
+- [x] ~~Add hash map and hash set~~ only hash maps actually
+- [x] Hash map not saving some of the encoding information
+- [x] Add proper hashing for enum datatype, to avoid generating identical enum types for different scope, e.g. "StartGame.GameType" vs "GameType"
+- [x] Register BindTypes by hash as well
+- [x] Literal Encoding for Enums should have data_encoding of string
+- [x] ~~Constant size array should be called vectors~~ Not separated type but resolved with 'vector_length' property
