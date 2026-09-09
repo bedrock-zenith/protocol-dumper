@@ -29,6 +29,8 @@ export class UnionLayoutInformation extends BindTypeInformation {
         values: string[],
     ): EnumLayoutInformation {
         const backing = new EnumLayoutInformation(name);
+        backing.set("kind", "numeric");
+        backing.set("backing", new IntegerInformation("u32"));
         let index = 0;
         for (const value of values) backing.fields[value] = index++;
         return backing;
