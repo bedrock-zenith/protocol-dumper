@@ -17,7 +17,7 @@ export class ArrayInformation extends PrimitiveTypeInformation {
         super.getData(data, scope);
 
         if (scope === 'layout' || scope === 'field') {
-            if (this.vector_length !== null) Reflect.set(data, 'vector_dimension', this.vector_length);
+            Reflect.set(data, 'vector_dimension', this.vector_length !== null ? this.vector_length : null);
             Reflect.set(data, 'element_type', this.element.createData('field'));
         }
     }

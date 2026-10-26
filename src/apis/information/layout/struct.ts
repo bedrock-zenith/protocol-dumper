@@ -204,6 +204,21 @@ export class StructEncodingInformation extends EncodingInformation {
         const pattern = consumer
             .getProperty<SchemaDefinition>("pattern")
             .extractOptional("string");
+
+        if (consumer.hasProperty("minimum"))
+            Reflect.set(
+                this.metadata,
+                "minimum",
+                consumer.getProperty("minimum").extract("number"),
+            );
+
+        if (consumer.hasProperty("maximum"))
+            Reflect.set(
+                this.metadata,
+                "maximum",
+                consumer.getProperty("maximum").extract("number"),
+            );
+
         if (pattern) Reflect.set(this.metadata, "pattern", pattern);
     }
 }
