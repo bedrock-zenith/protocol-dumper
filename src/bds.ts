@@ -1,14 +1,10 @@
-import {
-    DisposableMode,
-    getLatestBuildVersionFromService,
-    getSpecificDownloadLinkManual,
-    Installation
-} from '@bedrock-apis/bds-utils';
+import { DisposableMode, getSpecificDownloadLinkManual, Installation } from '@bedrock-apis/bds-utils';
 import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { platform, argv } from 'node:process';
+import { platform } from 'node:process';
 
+/*
 const is_preview = argv.map((_) => _.toLowerCase()).includes('--preview');
 const specific = argv.map((_) => _.toLowerCase()).findIndex((_) => _ == '--specific');
 var version = await getLatestBuildVersionFromService({
@@ -17,51 +13,56 @@ var version = await getLatestBuildVersionFromService({
 }).catch((_: unknown) => null);
 
 if (specific > 0) version = argv[specific + 1] ?? version;
+*/
+export const getDocumentationInstallationDirectory = async (
+    is_preview: boolean,
+    version: string
+): Promise<string> => {
+    console.log(version);
 
-console.log(version);
+    if (!version) {
+        const dir = await readdir('.bds-cache');
+        if (dir.length === 0) throw new ReferenceError('No version found');
 
-if (!version) {
-    const dir = await readdir('.bds-cache');
-    if (dir.length === 0) throw new ReferenceError('No version found');
+        dir.sort((a, b) => {
+            const aNumbers = a.split('.').map(Number);
+            const bNumbers = b.split('.').map(Number);
+            for (let i = 0; i < Math.min(aNumbers.length, bNumbers.length); i++) {
+                if (aNumbers[i]! - bNumbers[i]! === 0) continue;
+                return aNumbers[i]! - bNumbers[i]!;
+            }
 
-    dir.sort((a, b) => {
-        const aNumbers = a.split('.').map(Number);
-        const bNumbers = b.split('.').map(Number);
-        for (let i = 0; i < Math.min(aNumbers.length, bNumbers.length); i++) {
-            if (aNumbers[i]! - bNumbers[i]! === 0) continue;
-            return aNumbers[i]! - bNumbers[i]!;
-        }
+            return aNumbers.length - b.length;
+        });
+        version = dir.at(-1)!;
+    }
 
-        return aNumbers.length - b.length;
-    });
-    version = dir.at(-1)!;
-}
-
-await using installation = await Installation.From({
-    directory: '.bds-cache/' + version,
-    disposableMode: DisposableMode.StopRunningServes
-});
-
-if (!installation.getExecutableFile()) {
-    const link = getSpecificDownloadLinkManual({
-        platform: platform,
-        preview: is_preview,
-        version: version
+    await using installation = await Installation.From({
+        directory: '.bds-cache/' + version,
+        disposableMode: DisposableMode.StopRunningServes
     });
 
-    console.log('link: ' + link);
-    console.log('Installing BDS . . .');
-    if (!link) throw new ReferenceError('Installation not found');
+    if (!installation.getExecutableFile()) {
+        const link = getSpecificDownloadLinkManual({
+            platform: platform,
+            preview: is_preview,
+            version: version
+        });
 
-    await installation.install(link);
-}
+        console.log('link: ' + link);
+        console.log('Installing BDS . . .');
+        if (!link) throw new ReferenceError('Installation not found');
 
-console.log('running  . . .');
+        await installation.install(link);
+    }
 
-if (!existsSync(join(installation.directory, 'docs'))) {
-    const process = await installation.runWithTestConfig({ generate_documentation: true }, null);
+    console.log('running  . . .');
 
-    await process.wait();
-}
+    if (!existsSync(join(installation.directory, 'docs'))) {
+        const process = await installation.runWithTestConfig({ generate_documentation: true }, null);
 
-export const DIRECTORY = installation.directory;
+        await process.wait();
+    }
+
+    return installation.directory;
+};

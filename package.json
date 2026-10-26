@@ -1,7 +1,9 @@
 {
     "type": "module",
     "scripts": {
-        "dump": "rolldown -c && node --enable-source-maps dist/main.js"
+        "dump": "rolldown -c && node --enable-source-maps dist/main-dump.js",
+        "resolve": "rolldown -c && node --enable-source-maps dist/main-resolve.js",
+        "move": "rolldown -c && node --enable-source-maps dist/main-move.js"
     },
     "devDependencies": {
         "@bedrock-apis/bds-utils": "1.3.2-beta",
