@@ -14,32 +14,46 @@ const getProtocolDumperDirectory = async (is_preview: boolean, version: string):
     const DIRECTORY = await getDocumentationInstallationDirectory(is_preview, version);
     const stringify = (value: unknown): string => JSON.stringify(value, null, 2);
     console.log(DIRECTORY);
-    const OUTPUT = join('dump', basename(DIRECTORY));
-
     const protocol_dump = resolve(join(DIRECTORY, 'docs', 'json_schemas', 'protocol'));
+    const transformer = await Transformer.from(protocol_dump);
+
+    transformer.load();
+
+    const protocolVersion = transformer.protocol_version;
+    const folderName =
+        protocolVersion && protocolVersion !== -1
+            ? `${basename(DIRECTORY)}-protocol-${protocolVersion}`
+            : basename(DIRECTORY);
+    const OUTPUT = join('dump', folderName);
 
     await rm(OUTPUT, { recursive: true }).catch((_) => null);
     await mkdir(OUTPUT, { recursive: true }).catch((_) => null);
 
-    const transformer = await Transformer.from(protocol_dump);
-
-    transformer.load();
-    const base = {
+    const HEADER = {
         name: 'protocol',
-        bind_type: 'namespace',
         is_bind_type: false,
+        bind_type: 'namespace',
+        protocol_version: transformer.protocol_version,
+        minecraft_version: transformer.minecraft_version
+    } as const;
+
+    const base = {
+        ...HEADER,
         enums: [] as Array<unknown>,
         structs: [] as Array<unknown>,
         unions: [] as Array<unknown>,
         aliases: [] as Array<unknown>,
-        symbols: [] as Array<unknown>
+        symbols: [] as Array<unknown>,
+        packets: [] as Array<{ id: number; description: string | null; type: unknown }>
     };
+
     const canonical = {
-        name: 'protocol',
+        ...HEADER,
         bind_type: 'canonical_namespace',
-        is_bind_type: false,
-        types: [] as Array<unknown>
+        types: [] as Array<unknown>,
+        packets: base.packets
     };
+
     for (const any of transformer.register.byName.values()) {
         if (any instanceof BindTypeInformation)
             if (
@@ -60,12 +74,36 @@ const getProtocolDumperDirectory = async (is_preview: boolean, version: string):
                 );
             }
     }
+    for (const { id, type, description } of transformer.register.packets.values()) {
+        const any_object: object = {};
+        (type as BindTypeInformation).getData(any_object, 'reference');
+        base.packets.push({
+            id,
+            description: description ?? null,
+            type: any_object
+        });
+    }
     await writeFile(join(OUTPUT, '__protocol__.json'), stringify(base));
     await writeFile(join(OUTPUT, '__canonical_protocol__.json'), stringify(canonical));
     return OUTPUT;
 };
 
-/*(await getLatestBuildVersionFromService({ preview: true, platform: platform() as 'win32' }))! */
+////////// STABLE /////////////////
+for (const v of ['1.26.63.1']) await getProtocolDumperDirectory(false, v);
 
-await getProtocolDumperDirectory(true, '1.26.60.30');
-await getProtocolDumperDirectory(true, '1.26.70.21');
+////////// PREVIEW ////////////////
+for (const v of [
+    '1.26.60.21',
+    '1.26.60.23',
+    '1.26.60.25',
+    '1.26.60.27',
+    '1.26.60.28',
+    '1.26.60.29',
+    //'1.26.60.30', // Same protocol with stable release
+    '1.26.70.20',
+    '1.26.70.21',
+    '1.26.70.22',
+    '1.26.70.23',
+    '1.26.70.24'
+])
+    await getProtocolDumperDirectory(true, v);

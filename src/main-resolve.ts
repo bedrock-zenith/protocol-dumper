@@ -1,62 +1,53 @@
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
-interface ProtocolType {
-    name: string;
-    hash: string;
-    bind_type: string;
-    [key: string]: unknown;
-}
-
-interface ProtocolNamespace {
-    name: string;
-    bind_type: string;
-    is_bind_type: boolean;
-    enums: ProtocolType[];
-    structs: ProtocolType[];
-    unions: ProtocolType[];
-    aliases: ProtocolType[];
-    symbols: ProtocolType[];
-    [key: string]: unknown;
-}
-
-interface ProtocolCanonicalNamespace {
-    name: string;
-    bind_type: string;
-    is_bind_type: boolean;
-    types: ProtocolType[];
-    [key: string]: unknown;
-}
-
-const parseVersion = (version: string): number[] => {
-    return version.split('.').map((part): number => {
-        const num = Number.parseInt(part, 10);
-        return Number.isNaN(num) ? 0 : num;
-    });
-};
-
-const compareVersions = (a: string, b: string): number => {
-    const partsA = parseVersion(a);
-    const partsB = parseVersion(b);
-    const len = Math.max(partsA.length, partsB.length);
-
-    for (let i = 0; i < len; i++) {
-        const numA = partsA[i] ?? 0;
-        const numB = partsB[i] ?? 0;
-        if (numA !== numB) {
-            return numA - numB;
-        }
-    }
-    return a.localeCompare(b);
-};
-
-const stringify = (value: unknown): string => JSON.stringify(value, null, 2);
+import { exit, stderr } from 'node:process';
+import type {
+    PacketType,
+    ProtocolCanonicalNamespace,
+    ProtocolNamespace,
+    ProtocolType
+} from './main-types';
+import { compareVersions, stringify } from './utils';
 
 const toEntryFileName = (entry: ProtocolType): string => {
     return `${entry.bind_type}.${entry.name.replaceAll(' ', '-').toLowerCase()}.json`;
 };
 
 const TYPE_CATEGORIES = ['enums', 'structs', 'unions', 'aliases', 'symbols'] as const;
+
+const diffPackets = (
+    currentPackets: PacketType[] | undefined,
+    previousPackets: PacketType[] | undefined
+): PacketType[] => {
+    if (!currentPackets) return [];
+    if (!previousPackets) return [...currentPackets];
+
+    const prevPacketsMap = new Map<number, string>();
+    for (const pkt of previousPackets) {
+        if (pkt && typeof pkt.id === 'number') {
+            prevPacketsMap.set(pkt.id, JSON.stringify(pkt));
+        }
+    }
+
+    return currentPackets.filter((pkt): boolean => {
+        if (!pkt || typeof pkt.id !== 'number') return true;
+        const prevPktString = prevPacketsMap.get(pkt.id);
+        if (!prevPktString) return true;
+        return prevPktString !== JSON.stringify(pkt);
+    });
+};
+
+const hasProtocolDiff = (diff: ProtocolNamespace): boolean => {
+    for (const category of TYPE_CATEGORIES) {
+        if (diff[category] && diff[category].length > 0) return true;
+    }
+    return Boolean(diff.packets && diff.packets.length > 0);
+};
+
+const hasCanonicalDiff = (diff: ProtocolCanonicalNamespace): boolean => {
+    if (diff.types && diff.types.length > 0) return true;
+    return Boolean(diff.packets && diff.packets.length > 0);
+};
 
 const main = async (): Promise<void> => {
     const dumpDir = 'dump';
@@ -66,8 +57,17 @@ const main = async (): Promise<void> => {
         .map((entry): string => entry.name)
         .sort(compareVersions);
 
+    if (versionDirs.length === 0) {
+        stderr.write('No version directories found in dump.\n');
+        exit(1);
+    }
+
+    console.log(`Found ${versionDirs.length} versions to process: ${versionDirs.join(', ')}`);
+
     let previousProtocol: ProtocolNamespace | null = null;
     let previousCanonical: ProtocolCanonicalNamespace | null = null;
+    let previousVersion: string | null = null;
+    let totalChangesDetected = 0;
 
     for (const version of versionDirs) {
         const versionPath = join(dumpDir, version);
@@ -100,6 +100,10 @@ const main = async (): Promise<void> => {
 
         const filesToRemove = new Set<string>();
 
+        if (previousVersion !== null) {
+            console.log(`Comparing version ${version} against previous version ${previousVersion}...`);
+        }
+
         if (currentProtocol !== null) {
             if (previousProtocol !== null) {
                 // Collect hashes of types in previous version keyed by type category and name (or hash set)
@@ -120,7 +124,8 @@ const main = async (): Promise<void> => {
                     structs: [],
                     unions: [],
                     aliases: [],
-                    symbols: []
+                    symbols: [],
+                    packets: diffPackets(currentProtocol.packets, previousProtocol.packets)
                 };
 
                 for (const category of TYPE_CATEGORIES) {
@@ -137,8 +142,14 @@ const main = async (): Promise<void> => {
                 }
 
                 const changesPath = join(versionPath, '__protocol_diff__.json');
-                await writeFile(changesPath, stringify(changes));
-                console.log(`Generated ${changesPath}`);
+                if (hasProtocolDiff(changes)) {
+                    await writeFile(changesPath, stringify(changes));
+                    console.log(`Generated ${changesPath} (${previousVersion} -> ${version})`);
+                    totalChangesDetected++;
+                } else {
+                    await rm(changesPath, { force: true }).catch((): null => null);
+                    console.log(`No protocol changes between ${previousVersion} and ${version}, skipped ${changesPath}`);
+                }
             }
 
             previousProtocol = currentProtocol;
@@ -162,12 +173,19 @@ const main = async (): Promise<void> => {
                             filesToRemove.add(toEntryFileName(item));
                         }
                         return !isUnchanged;
-                    })
+                    }),
+                    packets: diffPackets(currentCanonical.packets, previousCanonical.packets)
                 };
 
                 const diffPath = join(versionPath, '__canonical_protocol_diff__.json');
-                await writeFile(diffPath, stringify(diff));
-                console.log(`Generated ${diffPath}`);
+                if (hasCanonicalDiff(diff)) {
+                    await writeFile(diffPath, stringify(diff));
+                    console.log(`Generated ${diffPath} (${previousVersion} -> ${version})`);
+                    totalChangesDetected++;
+                } else {
+                    await rm(diffPath, { force: true }).catch((): null => null);
+                    console.log(`No canonical changes between ${previousVersion} and ${version}, skipped ${diffPath}`);
+                }
             }
 
             previousCanonical = currentCanonical;
@@ -182,6 +200,14 @@ const main = async (): Promise<void> => {
             );
             console.log(`Removed ${filesToRemove.size} unchanged files from ${versionPath}`);
         }
+
+        previousVersion = version;
+    }
+
+    // When there are 2 or more versions compared and zero changes were detected anywhere
+    if (versionDirs.length > 1 && totalChangesDetected === 0) {
+        stderr.write(`Error: No protocol changes detected across the compared versions (${versionDirs.join(' -> ')}).\n`);
+        exit(1);
     }
 
     if (previousCanonical !== null || previousProtocol !== null) {
@@ -208,7 +234,7 @@ const main = async (): Promise<void> => {
         if (previousCanonical !== null) {
             await writeFile(join(latestDir, '__canonical_protocol__.json'), stringify(previousCanonical));
         }
-        console.log(`Generated ${latestDir} with all protocol files from latest version.`);
+        console.log(`Generated ${latestDir} with all protocol files from latest version (${previousVersion}).`);
     }
 };
 
